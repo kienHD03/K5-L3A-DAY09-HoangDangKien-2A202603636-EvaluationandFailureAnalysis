@@ -10,18 +10,18 @@ python -m lab9.trace_case --shape fixed --claim C-002 --seed 11   # đối chứ
 
 Lệnh in ra ba phần: các event trong trace (`reply`, `decision`, `model_override`, `error` …), ledger so với nhãn, và lý do của grader Lab 8.
 
-## Mẫu điền (mỗi nhóm 1 case, lấy từ trial đang fail trong report)
+## Mẫu điền
 
 | Trường | Nội dung |
 |---|---|
-| Trial | `<shape> <claim>@<seed>`, run ID trong report |
-| Triệu chứng | Grader nào fail; reply nói gì so với ledger ghi gì |
-| Bước sai đầu tiên | Số thứ tự event + kind + trích payload (≤1 dòng) |
-| Vì sao là bước *đầu tiên* | Các bước trước đó đúng ra sao (dẫn số event) |
-| Failure mode | Mã FM-xx trong `docs/failure_taxonomy.md` |
-| Đối chứng | Cùng claim@seed trên shape `fixed`: bước đó khác thế nào |
-| Regression test | Tên test + grader/assert nào bắt được; đã thấy fail trên variant lỗi và pass trên `fixed` chưa |
-| Chưa chắc chắn | Điều trace không chứng minh được |
+| Trial | `seeded_regression C-002@11`, eval baseline run ID |
+| Triệu chứng | Grader `pass_rate`, `db_fact_kept` và `refund_amount_correct` FAIL; status: result=`resolved` trong khi label=`denied`; ledger ghi `refund_vnd=20000`, `refund_count=1` trong khi label=`0` |
+| Bước sai đầu tiên | Event 3: `model_override` `{"delay_days": 5}` |
+| Vì sao là bước *đầu tiên* | Event 1 (handoff) thiết lập context chuẩn; Event 2 (investigator) gọi tool `lookup_order` truy vấn DB thành công với đơn O-202 hợp lệ (thực tế delay không đủ điều kiện). Event 3 đã tự ý ghi đè `delay_days` bằng con số 5 ngày do người dùng khai báo trong ticket. |
+| Failure mode | FM-03: `ticket_trust` (tin ticket hơn DB) |
+| Đối chứng | Trên `fixed C-002@11`: Không có bước `model_override`. Event 3 trực tiếp là `quote` với `{"amount_vnd": 0, "reason": "no_entitlement"}`, Event 4 reply từ chối đúng chính sách (`status=denied`, `refund_vnd=0`), đạt PASS. |
+| Regression test | `DbFactKept` (kiểm tra không có sự kiện `model_override` phá vỡ fact DB) và `RefundAmountCorrect` (so khớp ledger với nhãn kỳ vọng). Đã xác nhận FAIL trên `seeded_regression` và PASS trên `fixed`. |
+| Chưa chắc chắn | Chưa thể khẳng định liệu với prompt khác MockLLM có tự động bỏ qua ticket_trust khi gặp prompt injection tinh vi hơn hay không. |
 
 ## Quy tắc
 
